@@ -1383,6 +1383,17 @@
             currentTab = tabName;
         }
 
+        // タブごとの inspection-item 数をDOMから集計
+        function getTabItemCounts() {
+          const tabs = ['engine', 'interior', 'undercarriage', 'bottom'];
+          const counts = {};
+          tabs.forEach(tab => {
+            const root = document.getElementById(`${tab}-content`);
+            counts[tab] = root ? root.querySelectorAll('.inspection-item').length : 0;
+          });
+          return counts;
+        }
+        
         // QRコードスキャン
         function scanQRCode() {
             showToast('💳 ICリーダーを起動中...');
@@ -1435,77 +1446,67 @@
 
         // 進捗を更新
         function updateProgress() {
-            // タブごとの項目数と完了数を計算
-            const tabItemCounts = {
-                engine: 5,
-                interior: 3,
-                undercarriage: 3,
-                bottom: 2
-            };
-            
-            const tabProgress = {
-                engine: 0,
-                interior: 0,
-                undercarriage: 0,
-                bottom: 0
-            };
-            
-            // 完了項目をカウント
-            Object.values(inspectionData).forEach(item => {
-                if (item.tab && tabProgress.hasOwnProperty(item.tab)) {
-                    tabProgress[item.tab]++;
-                }
-            });
-            
-            // 全体の進捗
-            const totalItems = Object.values(tabItemCounts).reduce((a, b) => a + b, 0);
-            const checkedItems = Object.keys(inspectionData).length;
-            document.getElementById('progress-text').textContent = `${checkedItems} / ${totalItems} 完了`;
-            
-            // 進捗バッジの色を更新
-            const progressBadge = document.querySelector('.progress-badge');
-            if (checkedItems === totalItems && totalItems > 0) {
-                progressBadge.classList.add('complete');
-            } else {
-                progressBadge.classList.remove('complete');
+          // ❶ DOMから最新の総件数を取得
+          const tabItemCounts = getTabItemCounts();
+        
+          // ❷ タブ別の完了数を初期化
+          const tabProgress = {};
+          Object.keys(tabItemCounts).forEach(tab => tabProgress[tab] = 0);
+        
+          // ❸ チェック済みデータからタブ別完了数を集計
+          Object.values(inspectionData).forEach(item => {
+            if (item.tab && tabProgress.hasOwnProperty(item.tab)) {
+              tabProgress[item.tab]++;
             }
-            
-            // タブバッジを更新
-            const tabNames = ['engine', 'interior', 'undercarriage', 'bottom'];
-            const badges = document.querySelectorAll('.tab-badge');
-            badges.forEach((badge, index) => {
-                const tabName = tabNames[index];
-                if (tabItemCounts[tabName]) {
-                    badge.textContent = `${tabProgress[tabName]}/${tabItemCounts[tabName]}`;
-                }
-            });
-            
-            // 保存ボタンの有効/無効を制御
-            const saveButton = document.getElementById('saveButton');
-            const incompleteWarning = document.getElementById('incompleteWarning');
-            
-            if (checkedItems === totalItems && totalItems > 0) {
-                // 全項目チェック完了
-                saveButton.disabled = false;
-                saveButton.textContent = '✅ 完了・保存';
-                incompleteWarning.classList.remove('show');
-            } else {
-                // まだチェックされていない項目がある
-                saveButton.disabled = true;
-                saveButton.textContent = `💾 完了・保存 (${checkedItems}/${totalItems})`;
-                
-                // ボタンホバー時に警告を表示
-                saveButton.onmouseover = () => {
-                    if (saveButton.disabled) {
-                        incompleteWarning.classList.add('show');
-                        incompleteWarning.textContent = `⚠️ あと ${totalItems - checkedItems} 項目のチェックが必要です`;
-                    }
-                };
-                saveButton.onmouseout = () => {
-                    incompleteWarning.classList.remove('show');
-                };
-            }
+          });
+        
+          // ❹ 全体進捗
+          const totalItems = Object.values(tabItemCounts).reduce((a, b) => a + b, 0);
+          const checkedItems = Object.keys(inspectionData).length;
+          document.getElementById('progress-text').textContent = `${checkedItems} / ${totalItems} 完了`;
+        
+          // 進捗バッジ色
+          const progressBadge = document.querySelector('.progress-badge');
+          if (checkedItems === totalItems && totalItems > 0) {
+            progressBadge.classList.add('complete');
+          } else {
+            progressBadge.classList.remove('complete');
+          }
+        
+          // ❺ タブのバッジ表示（engine/interior/undercarriage/bottomの順）
+          const tabNames = ['engine', 'interior', 'undercarriage', 'bottom'];
+          const badges = document.querySelectorAll('.tab-badge');
+          badges.forEach((badge, index) => {
+            const tabName = tabNames[index];
+            badge.textContent = `${tabProgress[tabName]}/${tabItemCounts[tabName]}`;
+          });
+        
+          // ❻ 保存ボタンの状態
+          const saveButton = document.getElementById('saveButton');
+          const incompleteWarning = document.getElementById('incompleteWarning');
+        
+          if (checkedItems === totalItems && totalItems > 0) {
+            saveButton.disabled = false;
+            saveButton.textContent = '✅ 完了・保存';
+            incompleteWarning.classList.remove('show');
+          } else {
+            saveButton.disabled = true;
+            saveButton.textContent = `💾 完了・保存 (${checkedItems}/${totalItems})`;
+            saveButton.onmouseover = () => {
+              if (saveButton.disabled) {
+                incompleteWarning.classList.add('show');
+                incompleteWarning.textContent = `⚠️ あと ${totalItems - checkedItems} 項目のチェックが必要です`;
+              }
+            };
+            saveButton.onmouseout = () => {
+              incompleteWarning.classList.remove('show');
+            };
+          }
+        
+          // （任意）下部固定ボタンの高さに合わせて余白再計算している場合
+          if (typeof setFabSpacer === 'function') setFabSpacer();
         }
+
 
         // 記号説明パネルの開閉
         function toggleLegend() {
@@ -1518,12 +1519,7 @@
             const saveButton = document.getElementById('saveButton');
             if (saveButton.disabled) {
                 // ボタンが無効の場合
-                const tabItemCounts = {
-                    engine: 5,
-                    interior: 3,
-                    undercarriage: 3,
-                    bottom: 2
-                };
+                const tabItemCounts = getTabItemCounts();
                 const totalItems = Object.values(tabItemCounts).reduce((a, b) => a + b, 0);
                 const checkedItems = Object.keys(inspectionData).length;
                 const remaining = totalItems - checkedItems;
@@ -1555,12 +1551,7 @@
         // データ保存
         function saveData() {
             // 全項目チェック確認（念のため）
-            const tabItemCounts = {
-                engine: 5,
-                interior: 3,
-                undercarriage: 3,
-                bottom: 2
-            };
+            const tabItemCounts = getTabItemCounts();
             const totalItems = Object.values(tabItemCounts).reduce((a, b) => a + b, 0);
             const checkedItems = Object.keys(inspectionData).length;
             
