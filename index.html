@@ -1600,20 +1600,31 @@
 
         // 印刷機能
         function printRecord() {
-            const img = document.getElementById('maintenanceRecordImage');
+            const imgUrl = 'https://alps-inc.com/wordpress2/wp-content/uploads/780d58b55b9b6c33666f26c8a578ce48-1_page-0001-1.jpg';
+            const src = imgUrl + (imgUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
 
-            // 画像を差し替え（同じフォルダに置いた場合）
-            img.src = 'https://alps-inc.com/wordpress2/wp-content/uploads/780d58b55b9b6c33666f26c8a578ce48-1_page-0001-1.jpg';
+            const w = window.open('', '_blank');
+            if (!w) { alert('ポップアップがブロックされました。許可してください。'); return; }
 
-            // 画像の読み込み完了後に印刷（確実にプレビューへ反映させる）
-            img.onload = () => {
-            // 念のため短い遅延を入れるとSafari等でも安定します
-            setTimeout(() => window.print(), 50);
-            };
-
-            img.onerror = () => {
-            alert('印刷用画像が見つかりませんでした。パスを確認してください。');
-            };
+            w.document.write(`
+            <!DOCTYPE html><html><head><meta charset="utf-8">
+            <title>整備記録簿 印刷</title>
+            <style>
+                @page { size: A4 landscape; margin: 0; } /* 横向き設定 */
+                html, body { margin:0; padding:0; background:#fff; }
+                img { width:297mm; height:auto; display:block; margin:0 auto; } /* 横幅に合わせる */
+            </style>
+            </head>
+            <body>
+                <img id="pimg" src="${src}" alt="print">
+                <script>
+                const img = document.getElementById('pimg');
+                img.onload = () => { setTimeout(() => { window.print(); window.close(); }, 50); };
+                img.onerror = () => { alert('印刷用画像を読み込めません。URL/共有設定を確認してください。'); };
+                <\/script>
+            </body></html>
+            `);
+            w.document.close();
         }
     </script>
 </body>
