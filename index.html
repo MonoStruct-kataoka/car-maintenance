@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>整備記録簿システム - タブレット版</title>
+    <title>整備記録簿システム タブレット・スマホ</title>
     <style>
         * {
             margin: 0;
@@ -634,6 +634,128 @@
             display: none;
             background: white;
         }
+        /* ← 既存の<style>内の下の方に追記してください */
+        /* モバイル共通（iOSアドレスバー対策・安全領域） */
+        html, body {
+            height: auto;
+            min-height: 100svh;  /* 100vhより安全 */
+            overflow: auto;      /* スクロールを許可 */
+            background: #f5f5f5;
+        }
+        body { padding-bottom: env(safe-area-inset-bottom); }
+
+        /* ヘッダーとタブを固定してスクロール時も見えるように */
+        .header { position: sticky; top: 0; z-index: 20; }
+        .tab-navigation { position: sticky; top: 60px; z-index: 19; }
+
+        /* タブレット～スマホ */
+        @media (max-width: 768px) {
+            .header { padding: 12px 14px; }
+            .header-title { font-size: 18px; gap: 8px; }
+            .header-info { gap: 10px; font-size: 12px; }
+            .vehicle-number { padding: 6px 10px; }
+            .progress-badge { padding: 6px 10px; border-radius: 16px; }
+
+            .tab-navigation { padding: 0 10px; }
+            .tab-btn { padding: 12px 14px; font-size: 14px; }
+
+            .main-content { padding: 12px; }
+
+            .vehicle-info-grid,
+            .inspection-grid,
+            .maintenance-info-grid { grid-template-columns: 1fr; gap: 12px; }
+
+            .info-card { padding: 16px; }
+            .info-card-header { font-size: 16px; margin-bottom: 12px; }
+
+            .input-field { font-size: 16px; } /* iOSの拡大防止 */
+
+            /* チェックボタン群がはみ出さないように */
+            .check-buttons { max-width: none; gap: 6px; }
+            .check-btn { width: 36px; height: 36px; font-size: 16px; }
+
+            /* 交換部品の横2列→1列 */
+            .replacement-grid { grid-template-columns: 1fr; gap: 10px; }
+            .replacement-quantity { width: 100%; }
+
+            /* 測定値：3列→2列 */
+            .measurement-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        }
+
+        /* さらに小さい端末（～480px） */
+        @media (max-width: 480px) {
+            .tab-btn { padding: 10px 12px; font-size: 13px; }
+            .check-btn { width: 32px; height: 32px; font-size: 15px; }
+            /* 測定値：2列→1列 */
+            .measurement-grid { grid-template-columns: 1fr; }
+        }
+
+        /* フローティングボタンを“下部固定バー”にして被りを防ぐ */
+        .floating-actions {
+            position: sticky;
+            bottom: 0;
+            right: 0;
+            width: 100%;
+            padding: 10px env(safe-area-inset-right) calc(10px + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            background: linear-gradient(180deg, rgba(245,245,245,0) 0%, rgba(245,245,245,0.95) 30%, #f5f5f5 100%);
+            z-index: 30;
+        }
+        .fab { width: 100%; border-radius: 12px; padding: 14px; }
+
+        /* 左スライドパネルはスマホでは“下から出る”ボトムシート化 */
+        @media (max-width: 768px) {
+        .legend-panel {
+            top: auto; left: 0; right: 0; bottom: -60vh;
+            transform: none;
+            width: 100%; max-height: 60vh; overflow: auto;
+            border-radius: 12px 12px 0 0;
+            transition: bottom .3s;
+        }
+        .legend-panel.show { bottom: 0; }
+        .legend-toggle {
+            right: 12px; top: -44px; transform: none;
+            width: 44px; height: 44px; border-radius: 8px;
+        }
+        }
+
+        /* --- 主な交換部品 等の崩れ対策 --- */
+        /* デフォルト（PC/タブレット横幅）ではラベル＋入力を左右に配置 */
+        .replacement-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .replacement-label {
+            flex: 1 1 auto;
+            min-width: 200px;      /* ラベルが潰れすぎないように下限を確保 */
+            line-height: 1.4;
+            white-space: normal;   /* 文字が不自然に詰まらないように */
+        }
+        .replacement-quantity {
+            flex: 0 0 140px;       /* 入力欄の幅を固定（横並び時の押し出し防止） */
+            width: 140px;
+        }
+
+        /* スマホ幅では縦積みに変更（ラベルの下に入力欄） */
+        @media (max-width: 768px) {
+            .replacement-grid { grid-template-columns: 1fr; }
+            .replacement-item {
+                flex-direction: column;   /* ← ここがポイント */
+                align-items: stretch;
+        }
+        .replacement-label {
+            min-width: 0;             /* 縦積み時は制限解除 */
+        }
+        .replacement-quantity {
+            width: 100%;              /* 端末幅いっぱいに */
+            flex: 0 0 auto;
+        }
+        }
+
     </style>
 </head>
 <body>
@@ -654,28 +776,12 @@
 
         <!-- タブナビゲーション -->
         <div class="tab-navigation">
-            <button class="tab-btn active" onclick="switchTab('vehicle')">
-                車両情報
-            </button>
-            <button class="tab-btn" onclick="switchTab('engine')">
-                エンジンルーム
-                <span class="tab-badge">0/0</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('interior')">
-                室内点検
-                <span class="tab-badge">0/0</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('undercarriage')">
-                足廻り点検
-                <span class="tab-badge">0/0</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('bottom')">
-                下廻り点検
-                <span class="tab-badge">0/0</span>
-            </button>
-            <button class="tab-btn" onclick="switchTab('additional')">
-                追加項目
-            </button>
+            <button class="tab-btn active" onclick="switchTab(this,'vehicle')">車両情報</button>
+            <button class="tab-btn" onclick="switchTab(this,'engine')">エンジンルーム <span class="tab-badge">0/0</span></button>
+            <button class="tab-btn" onclick="switchTab(this,'interior')">室内点検 <span class="tab-badge">0/0</span></button>
+            <button class="tab-btn" onclick="switchTab(this,'undercarriage')">足廻り点検 <span class="tab-badge">0/0</span></button>
+            <button class="tab-btn" onclick="switchTab(this,'bottom')">下廻り点検 <span class="tab-badge">0/0</span></button>
+            <button class="tab-btn" onclick="switchTab(this,'additional')">追加項目</button>
         </div>
 
         <!-- メインコンテンツ -->
@@ -1202,34 +1308,26 @@
         });
 
         // タブ切り替え
-        function switchTab(tabName) {
-            // 全タブコンテンツを非表示
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            // タブボタンのアクティブ状態を更新
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // クリックされたタブをアクティブに
-            event.target.classList.add('active');
-            
-            // 対応するコンテンツを表示
-            document.getElementById(tabName + '-content').style.display = 'block';
-            
-            // ヘッダータイトルを更新
+        function switchTab(btn, tabName) {
+            // 全タブ非表示
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+
+            // すべてのタブボタンのactive解除
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            // 押したタブをactiveに
+            btn.classList.add('active');
+
+            // 対応コンテンツ表示
+            document.getElementById(`${tabName}-content`).style.display = 'block';
+
+            // ヘッダータイトル更新
             const titles = {
-                vehicle: '車両情報登録',
-                engine: 'エンジン・ルーム点検',
-                interior: '室内点検',
-                undercarriage: '足廻り点検',
-                bottom: '下廻り点検',
-                additional: '追加項目'
+                vehicle:'車両情報登録', engine:'エンジン・ルーム点検', interior:'室内点検',
+                undercarriage:'足廻り点検', bottom:'下廻り点検', additional:'追加項目'
             };
-            document.getElementById('section-title').textContent = titles[tabName];
-            
+            document.getElementById('section-title').textContent = titles[tabName] || '整備記録簿システム';
+
             currentTab = tabName;
         }
 
@@ -1502,31 +1600,20 @@
 
         // 印刷機能
         function printRecord() {
-            const imgUrl = 'https://alps-inc.com/wordpress2/wp-content/uploads/780d58b55b9b6c33666f26c8a578ce48-1_page-0001-1.jpg';
-            const src = imgUrl + (imgUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+            const img = document.getElementById('maintenanceRecordImage');
 
-            const w = window.open('', '_blank');
-            if (!w) { alert('ポップアップがブロックされました。許可してください。'); return; }
+            // 画像を差し替え（同じフォルダに置いた場合）
+            img.src = './IMG_5767.jpeg';
 
-            w.document.write(`
-            <!DOCTYPE html><html><head><meta charset="utf-8">
-            <title>整備記録簿 印刷</title>
-            <style>
-                @page { size: A4 landscape; margin: 0; } /* 横向き設定 */
-                html, body { margin:0; padding:0; background:#fff; }
-                img { width:297mm; height:auto; display:block; margin:0 auto; } /* 横幅に合わせる */
-            </style>
-            </head>
-            <body>
-                <img id="pimg" src="${src}" alt="print">
-                <script>
-                const img = document.getElementById('pimg');
-                img.onload = () => { setTimeout(() => { window.print(); window.close(); }, 50); };
-                img.onerror = () => { alert('印刷用画像を読み込めません。URL/共有設定を確認してください。'); };
-                <\/script>
-            </body></html>
-            `);
-            w.document.close();
+            // 画像の読み込み完了後に印刷（確実にプレビューへ反映させる）
+            img.onload = () => {
+            // 念のため短い遅延を入れるとSafari等でも安定します
+            setTimeout(() => window.print(), 50);
+            };
+
+            img.onerror = () => {
+            alert('印刷用画像が見つかりませんでした。パスを確認してください。');
+            };
         }
     </script>
 </body>
